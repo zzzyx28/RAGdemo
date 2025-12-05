@@ -1,0 +1,18 @@
+qemu-system-riscv64 \
+    -machine virt \
+    -nographic \
+    -bios /root/qemu-7.0.0/build \
+    -device loader,file=target/riscv64gc-unknown-none-elf/release/os.bin,addr=0x80200000
+
+
+oecczndiouxjdifh
+
+
+echo "deb [arch=$(dpkg --print-architecture)] https://repo.huaweicloud.com/ros2/ubuntu/ $(source /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list >/dev/null
+
+sudo apt install python3-colcon-common-extensions
+
+echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> ~/.bashrc
+
+git config --global user.name "zzzyx28"
+git config --global user.email "1291870371@qq.com"
