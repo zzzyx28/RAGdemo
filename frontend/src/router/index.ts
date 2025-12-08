@@ -1,16 +1,42 @@
-/**
- * router/index.ts
- *
- * Automatic routes for `./src/pages/*.vue`
- */
-
-// Composables
 import { createRouter, createWebHistory } from 'vue-router'
-import { routes } from 'vue-router/auto-routes'
+import Login from '@/pages/Login.vue'
+import Register from '@/pages/Register.vue'
+
+const routes = [
+  {
+    path: '/',
+    name: 'Home',
+    component: () => import('@/App.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register
+  }
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
+  routes
+})
+
+// 添加路由守卫
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('access_token')
+
+  if (to.meta.requiresAuth && !token) {
+    next('/login')
+  } else if (token && to.name === 'Login') {
+    next('/')
+  } else {
+    next()
+  }
 })
 
 // Workaround for https://github.com/vitejs/vite/issues/11804
