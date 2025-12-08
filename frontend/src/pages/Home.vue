@@ -275,18 +275,29 @@ const uploadFiles = async (fileList: FileList) => {
   });
 
   try {
+    const token = localStorage.getItem('access_token');
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch('http://localhost:5000/api/upload', {
       method: 'POST',
+      headers: headers,
       body: formData, // fetch 会自动设置 Content-Type 为 multipart/form-data
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errData = await response.json();
-      alert(`上传失败: ${errData.details || '未知错误'}`);
+      // 后端返回格式: {code, message, errors: {details: [...]}}
+      const errorMsg = data.errors?.details 
+        ? (Array.isArray(data.errors.details) ? data.errors.details.join('; ') : data.errors.details)
+        : data.message || '未知错误';
+      alert(`上传失败: ${errorMsg}`);
       return;
     }
 
-    const data = await response.json();
     console.log('上传成功:', data);
 
     // 上传成功后，立即刷新知识库列表，更新界面
@@ -324,11 +335,14 @@ const confirmDelete = async (filename: string) => {
       body: JSON.stringify({ filename: filename }), // 与后端参数名完全匹配
     });
 
-    if (response.ok) {
+    const result = await response.json();
+    
+    if (response.ok && result.code === 200) {
       await fetchKbInfo(); // 刷新文件列表
     } else {
-      const err = await response.json();
-      alert(`删除失败: ${err.error || '未知错误'}`);
+      // 后端返回格式: {code, message, errors?}
+      const errorMsg = result.message || result.errors?.details || '未知错误';
+      alert(`删除失败: ${errorMsg}`);
     }
   } catch (error) {
     console.error('删除错误:', error);
@@ -339,17 +353,23 @@ const confirmDelete = async (filename: string) => {
 
 // --- 获取知识库信息 ---
 const fetchKbInfo = async () => {
-  // try {
-  //   const res = await fetch('http://localhost:5000/api/kb-info');
-  //   const data = await res.json();
-  //   kbFiles.value = data.files;
-  //   kbStats.value = {
-  //     fileCount: data.file_count,
-  //     vectorCount: data.vector_count
-  //   };
-  // } catch (error) {
-  //   console.error("获取知识库信息失败:", error);
-  // }
+  try {
+    const res = await fetch('http://localhost:5000/api/kb-info');
+    const result = await res.json();
+    
+    if (res.ok && result.code === 200) {
+      // 后端返回格式: {code, message, data: {file_count, vector_count, files}}
+      kbFiles.value = result.data?.files || [];
+      kbStats.value = {
+        fileCount: result.data?.file_count || 0,
+        vectorCount: result.data?.vector_count || 0
+      };
+    } else {
+      console.error("获取知识库信息失败:", result.message || '未知错误');
+    }
+  } catch (error) {
+    console.error("获取知识库信息失败:", error);
+  }
 };
 
 // 组件加载时获取数据

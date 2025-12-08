@@ -67,6 +67,10 @@ def upload_file():
     saved_files = []
     errors = []
     
+    # 检查是否有有效文件
+    if not files or all(f.filename == '' for f in files):
+        return APIResponse.error(message="请选择至少一个文件", code=400)
+    
     for file in files:
         if file.filename == '':
             continue
