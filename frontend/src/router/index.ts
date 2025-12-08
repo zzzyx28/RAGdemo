@@ -1,12 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '@/pages/Login.vue'
 import Register from '@/pages/Register.vue'
+import Home from "@/pages/Home.vue";
+
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('@/App.vue'),
+    component: Home,
     meta: { requiresAuth: true }
   },
   {
@@ -29,12 +31,18 @@ const router = createRouter({
 // 添加路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('access_token')
+  const requiresAuth = to.meta.requiresAuth
 
-  if (to.meta.requiresAuth && !token) {
+  // 处理需要认证的路由
+  if (requiresAuth && !token) {
     next('/login')
-  } else if (token && to.name === 'Login') {
+  }
+  // 处理已登录用户访问登录/注册页
+  else if (token && (to.name === 'Login' || to.name === 'Register')) {
     next('/')
-  } else {
+  }
+  // 其他情况正常跳转
+  else {
     next()
   }
 })

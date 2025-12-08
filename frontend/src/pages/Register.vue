@@ -22,6 +22,18 @@
               ></v-text-field>
 
               <v-text-field
+                v-model="email"
+                label="邮箱"
+                prepend-inner-icon="mdi-email-outline"
+                type="email"
+                required
+                variant="outlined"
+                density="comfortable"
+                class="mb-3"
+                :rules="[rules.required, rules.email]"
+              ></v-text-field>
+
+              <v-text-field
                 v-model="password"
                 label="密码"
                 prepend-inner-icon="mdi-lock-outline"
@@ -30,7 +42,7 @@
                 variant="outlined"
                 density="comfortable"
                 class="mb-3"
-                :rules="[rules.required, rules.min]"
+                :rules="[rules.required, rules.passwordMin]"
               ></v-text-field>
 
               <v-text-field
@@ -86,6 +98,7 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const username = ref('');
+const email = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const loading = ref(false);
@@ -96,6 +109,11 @@ const success = ref('');
 const rules = reactive({
   required: (value: string) => !!value || '此字段为必填项',
   min: (value: string) => (value && value.length >= 3) || '至少需要3个字符',
+  email: (value: string) => {
+    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return pattern.test(value) || '请输入有效的邮箱地址';
+  },
+  passwordMin: (value: string) => (value && value.length >= 8) || '密码至少需要8个字符',
   passwordMatch: () => password.value === confirmPassword.value || '两次输入的密码不一致'
 });
 
@@ -105,7 +123,7 @@ const handleRegister = async () => {
   success.value = '';
 
   // 基本表单验证
-  if (!username.value || !password.value || !confirmPassword.value) {
+  if (!username.value || !email.value || !password.value || !confirmPassword.value) {
     error.value = '请填写所有字段';
     return;
   }
@@ -115,8 +133,15 @@ const handleRegister = async () => {
     return;
   }
 
-  if (password.value.length < 3) {
-    error.value = '密码至少需要3个字符';
+  // 邮箱格式验证
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(email.value)) {
+    error.value = '请输入有效的邮箱地址';
+    return;
+  }
+
+  if (password.value.length < 8) {
+    error.value = '密码至少需要8个字符';
     return;
   }
 
@@ -133,6 +158,7 @@ const handleRegister = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: username.value,
+        email: email.value,
         password: password.value
       }),
     });
@@ -140,7 +166,7 @@ const handleRegister = async () => {
     const data = await response.json();
 
     if (!response.ok) {
-      error.value = data.msg || '注册失败，请稍后重试。';
+      error.value = data.message || data.msg || '注册失败，请稍后重试。';
       return;
     }
 

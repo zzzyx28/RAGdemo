@@ -86,16 +86,22 @@ const handleLogin = async () => {
     });
 
     if (!response.ok) {
-      const data = await response.json();
-      error.value = data.msg || '登录失败，请检查用户名和密码。';
+      const errorData = await response.json();
+      error.value = errorData.message || errorData.msg || '登录失败，请检查用户名和密码。';
       return;
     }
 
-    const data = await response.json();
+    const result = await response.json();
+
+    // 检查返回数据结构
+    if (!result.data || !result.data.access_token) {
+      error.value = result.message || '登录失败，服务器返回数据格式错误。';
+      return;
+    }
 
     // 1. 存储 Token (核心步骤)
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('username', data.username);
+    localStorage.setItem('access_token', result.data.access_token);
+    localStorage.setItem('username', result.data.username || '');
 
     // 2. 路由跳转到主页
     router.push('/');
