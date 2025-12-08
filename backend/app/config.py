@@ -1,19 +1,44 @@
 """
 应用配置
-支持从环境变量读取配置
+支持从环境变量读取配置，优先使用环境变量，否则使用默认值
 """
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
-# 加载 .env 文件
+# 加载 .env 文件（如果存在）
+# 注意：.env 文件是可选的，所有配置都有合理的默认值
 load_dotenv()
 
 
+def get_env_bool(key: str, default: bool = False) -> bool:
+    """从环境变量读取布尔值"""
+    value = os.getenv(key, '').lower()
+    return value in ('true', '1', 'yes', 'on') if value else default
+
+
+def get_env_int(key: str, default: int) -> int:
+    """从环境变量读取整数值"""
+    try:
+        return int(os.getenv(key, str(default)))
+    except (ValueError, TypeError):
+        return default
+
+
+def get_env_list(key: str, default: list, separator: str = ',') -> list:
+    """从环境变量读取列表（用分隔符分隔）"""
+    value = os.getenv(key, '')
+    return [item.strip() for item in value.split(separator) if item.strip()] if value else default
+
+
 class Config:
-    """基础配置类"""
+    """基础配置类
     
-    # 基础路径
+    所有配置都支持从环境变量读取，如果没有设置环境变量则使用默认值。
+    开发环境可以直接使用默认值，生产环境建议通过 .env 文件或环境变量设置。
+    """
+    
+    # ========== 基础路径配置 ==========
     BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     INSTANCE_PATH = os.path.join(BASE_DIR, 'instance')
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
@@ -24,56 +49,66 @@ class Config:
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(LOGS_FOLDER, exist_ok=True)
     
-    # 数据库配置
-    # 使用相对路径，Flask-SQLAlchemy 会自动基于 instance_path 处理
-    # 注意：只需要数据库文件名，不要包含 'instance/' 前缀
-    # 如果环境变量包含 'instance/'，需要移除它
-    env_db_url = os.getenv('DATABASE_URL', '')
-    if env_db_url and env_db_url.startswith('sqlite:///'):
-        # 移除可能的 'instance/' 前缀，避免路径重复
-        db_path = env_db_url.replace('sqlite:///', '')
-        if db_path.startswith('instance/'):
-            db_path = db_path.replace('instance/', '', 1)
-        SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}' if db_path else 'sqlite:///demo.db'
+    # ========== 数据库配置 ==========
+    # 默认使用 SQLite，可通过 DATABASE_URL 环境变量覆盖
+    # SQLite: sqlite:///demo.db
+    # PostgreSQL: postgresql://user:password@localhost/dbname
+    # MySQL: mysql://user:password@localhost/dbname
+    _db_url = os.getenv('DATABASE_URL', '')
+    if _db_url:
+        # 处理 SQLite 路径，移除可能的 'instance/' 前缀
+        if _db_url.startswith('sqlite:///'):
+            db_path = _db_url.replace('sqlite:///', '')
+            if db_path.startswith('instance/'):
+                db_path = db_path.replace('instance/', '', 1)
+            SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
+        else:
+            SQLALCHEMY_DATABASE_URI = _db_url
     else:
-        SQLALCHEMY_DATABASE_URI = env_db_url if env_db_url else 'sqlite:///demo.db'
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///demo.db'
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # 数据库连接池配置
     SQLALCHEMY_ENGINE_OPTIONS = {
         'connect_args': {
-            'check_same_thread': False,  # SQLite 多线程支持（Flask 需要）
-            'timeout': 20,  # 连接超时时间（秒）
-            'isolation_level': None,  # 自动提交模式（可选）
+            'check_same_thread': False,  # SQLite 多线程支持
+            'timeout': 20,
+            'isolation_level': None,
         },
-        'pool_pre_ping': True,  # 连接前检查连接是否有效
-        'echo': False,  # 是否打印 SQL 语句（调试用）
+        'pool_pre_ping': True,
+        'echo': False,  # 设置为 True 可打印 SQL 语句（调试用）
     }
     
-    # JWT 配置
+    # ========== JWT 认证配置 ==========
+    # 开发环境使用默认密钥，生产环境必须通过环境变量设置强密钥
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-prod')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
-        hours=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES_HOURS', '24'))
+        hours=get_env_int('JWT_ACCESS_TOKEN_EXPIRES_HOURS', 24)
     )
     
-    # CORS 配置
-    CORS_ORIGINS = os.getenv(
+    # ========== CORS 配置 ==========
+    # 开发环境默认允许 localhost，生产环境需要设置实际域名
+    CORS_ORIGINS = get_env_list(
         'CORS_ORIGINS',
-        'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173'
-    ).split(',')
-    
-    # 文件上传配置
-    MAX_UPLOAD_SIZE = int(os.getenv('MAX_UPLOAD_SIZE', '10485760'))  # 10MB
-    ALLOWED_EXTENSIONS = set(
-        os.getenv('ALLOWED_EXTENSIONS', 'txt,pdf,md,doc,docx,csv').split(',')
+        ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173']
     )
     
-    # 日志配置
+    # ========== 文件上传配置 ==========
+    MAX_UPLOAD_SIZE = get_env_int('MAX_UPLOAD_SIZE', 10485760)  # 默认 10MB
+    ALLOWED_EXTENSIONS = set(
+        get_env_list('ALLOWED_EXTENSIONS', ['txt', 'pdf', 'md', 'doc', 'docx', 'csv'])
+    )
+    
+    # ========== 日志配置 ==========
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
     LOG_FILE = os.path.join(LOGS_FOLDER, 'app.log')
     
-    # ChromaDB 配置
-    CHROMA_DB_PATH = os.getenv('CHROMA_DB_PATH', os.path.join(INSTANCE_PATH, 'chroma_db'))
+    # ========== ChromaDB 配置 ==========
+    CHROMA_DB_PATH = os.getenv(
+        'CHROMA_DB_PATH',
+        os.path.join(INSTANCE_PATH, 'chroma_db')
+    )
 
 
 class DevelopmentConfig(Config):
@@ -83,14 +118,27 @@ class DevelopmentConfig(Config):
 
 
 class ProductionConfig(Config):
-    """生产环境配置"""
+    """生产环境配置
+    
+    生产环境要求：
+    1. JWT_SECRET_KEY 必须通过环境变量设置（不能使用默认值）
+    2. 建议设置 DATABASE_URL 使用生产数据库
+    3. CORS_ORIGINS 应设置为实际的前端域名
+    
+    注意：如果 JWT_SECRET_KEY 未设置或使用默认值，应用启动时会抛出异常
+    """
     DEBUG = False
     TESTING = False
     
-    # 生产环境必须从环境变量读取密钥
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
-    if not JWT_SECRET_KEY:
-        raise ValueError("JWT_SECRET_KEY must be set in production environment")
+    # 生产环境必须从环境变量读取密钥，不允许使用默认值
+    # 在类加载时检查，如果未设置则抛出异常
+    _jwt_secret = os.getenv('JWT_SECRET_KEY')
+    if not _jwt_secret or _jwt_secret == 'dev-secret-key-change-in-prod':
+        raise ValueError(
+            "JWT_SECRET_KEY must be set in production environment. "
+            "Please set it via environment variable or .env file."
+        )
+    JWT_SECRET_KEY = _jwt_secret
 
 
 class TestingConfig(Config):

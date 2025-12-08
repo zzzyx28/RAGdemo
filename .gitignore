@@ -23,6 +23,8 @@ instance/
 .env
 .env.local
 .env.*.local
+# 但允许 .env.example 文件（作为配置模板）
+!.env.example
 
 # 日志
 logs/
