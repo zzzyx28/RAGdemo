@@ -3,6 +3,7 @@
 """
 import os
 from flask import request, current_app
+from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 
 from app.utils.responses import APIResponse
@@ -25,6 +26,7 @@ def allowed_file(filename, allowed_extensions):
 
 
 @kb_bp.route('/kb-info', methods=['GET'])
+@jwt_required()
 def get_kb_info():
     """获取知识库信息接口"""
     config = get_upload_config()
@@ -57,6 +59,7 @@ def get_kb_info():
 
 
 @kb_bp.route('/upload', methods=['POST'])
+@jwt_required()
 def upload_file():
     """文件上传接口"""
     if 'file' not in request.files:
@@ -124,6 +127,7 @@ def upload_file():
 
 
 @kb_bp.route('/delete', methods=['POST'])
+@jwt_required()
 def delete_file():
     """删除文件接口"""
     data = request.get_json()

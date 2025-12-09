@@ -9,7 +9,7 @@ const routes = [
     path: '/',
     name: 'Home',
     component: Home,
-    meta: { requiresAuth: true }
+    // meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -31,20 +31,18 @@ const router = createRouter({
 // 添加路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('access_token')
-  const requiresAuth = to.meta.requiresAuth
 
-  // 处理需要认证的路由
-  if (requiresAuth && !token) {
-    next('/login')
+  // ⚡ 已登录用户访问 login/register → 自动跳回首页
+  if (token && (to.name === 'Login' || to.name === 'Register')) {
+    return next('/')
   }
-  // 处理已登录用户访问登录/注册页
-  else if (token && (to.name === 'Login' || to.name === 'Register')) {
-    next('/')
+
+  // ⚡ 未登录访问需要鉴权的页面 → 跳转登录
+  if (!token && to.meta.requiresAuth) {
+    return next('/login')
   }
-  // 其他情况正常跳转
-  else {
-    next()
-  }
+
+  next()
 })
 
 // Workaround for https://github.com/vitejs/vite/issues/11804

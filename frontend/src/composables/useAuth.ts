@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 export function useAuth() {
@@ -11,18 +11,27 @@ export function useAuth() {
     currentUsername.value = localStorage.getItem('username') || '';
   };
 
-  // 监听其他标签页的 storage 变化
-  window.addEventListener('storage', updateAuthState);
-
-  // 监听页面可见性变化，当页面重新可见时检查登录状态（用于从登录页返回的情况）
-  document.addEventListener('visibilitychange', () => {
+  // 页面可见性变化处理函数（需要保存引用以便清理）
+  const handleVisibilityChange = () => {
     if (!document.hidden) {
       updateAuthState();
     }
-  });
+  };
 
   onMounted(() => {
     updateAuthState();
+    
+    // 监听其他标签页的 storage 变化
+    window.addEventListener('storage', updateAuthState);
+    
+    // 监听页面可见性变化，当页面重新可见时检查登录状态（用于从登录页返回的情况）
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  });
+
+  // 清理事件监听器，防止内存泄漏
+  onUnmounted(() => {
+    window.removeEventListener('storage', updateAuthState);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
   });
 
   // 登出处理函数
@@ -47,6 +56,7 @@ export function useAuth() {
   // 处理登录点击
   const handleLoginClick = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('username');
     isAuthenticated.value = false;
     router.push('/login');

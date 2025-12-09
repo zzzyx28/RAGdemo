@@ -3,8 +3,8 @@
 """
 from flask import request, current_app
 from flask_jwt_extended import (
-    jwt_required, create_access_token,
-    get_jwt_identity
+    jwt_required, create_access_token, create_refresh_token,
+    get_jwt_identity, get_jwt
 )
 from datetime import timedelta
 from sqlalchemy.exc import SQLAlchemyError
@@ -108,16 +108,21 @@ def login():
         if not user.is_active:
             return APIResponse.forbidden("账号已被禁用")
         
-        # 创建 Token
+        # 创建 Access Token 和 Refresh Token
         access_token = create_access_token(
             identity=str(user.id),
             expires_delta=timedelta(hours=24)
+        )
+        refresh_token = create_refresh_token(
+            identity=str(user.id),
+            expires_delta=timedelta(days=30)
         )
         
         current_app.logger.info(f"用户登录: {username}")
         return APIResponse.success(
             data={
                 "access_token": access_token,
+                "refresh_token": refresh_token,
                 "username": user.username,
                 "user": user.to_dict()
             },
@@ -158,4 +163,77 @@ def profile():
     except SQLAlchemyError as e:
         current_app.logger.error(f"获取用户资料时数据库错误: {str(e)}")
         raise  # 让全局错误处理器处理
+
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """刷新 Access Token 接口
+    
+    使用 Refresh Token 获取新的 Access Token
+    Refresh Token 的有效期更长，用于在 Access Token 过期后刷新
+    """
+    try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return APIResponse.unauthorized("无效的Refresh Token")
+        
+        # 验证用户是否存在且活跃
+        try:
+            user_id_int = int(user_id)
+        except (ValueError, TypeError):
+            return APIResponse.error(message="无效的用户ID格式", code=400)
+        
+        user = User.query.get(user_id_int)
+        if not user:
+            return APIResponse.unauthorized("用户不存在")
+        
+        if not user.is_active:
+            return APIResponse.forbidden("账号已被禁用")
+        
+        # 创建新的 Access Token
+        new_access_token = create_access_token(
+            identity=str(user.id),
+            expires_delta=timedelta(hours=24)
+        )
+        
+        current_app.logger.info(f"Token刷新成功: {user.username}")
+        return APIResponse.success(
+            data={
+                "access_token": new_access_token,
+                "username": user.username
+            },
+            message="Token刷新成功"
+        )
+        
+    except SQLAlchemyError as e:
+        current_app.logger.error(f"刷新Token时数据库错误: {str(e)}")
+        raise  # 让全局错误处理器处理
+
+
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """用户登出接口
+    
+    注意：JWT是无状态的，服务端无法主动撤销Token
+    这里只是返回成功，实际的Token撤销需要：
+    1. 客户端删除本地存储的Token
+    2. 或者实现Token黑名单机制（需要额外存储）
+    """
+    try:
+        # 获取当前Token的JTI（JWT ID），可用于实现黑名单
+        jti = get_jwt().get('jti')
+        user_id = get_jwt_identity()
+        
+        current_app.logger.info(f"用户登出: user_id={user_id}, jti={jti}")
+        
+        # TODO: 如果需要实现Token黑名单，可以在这里将jti存入Redis或数据库
+        # 然后在JWT验证时检查黑名单
+        
+        return APIResponse.success(message="登出成功")
+        
+    except Exception as e:
+        current_app.logger.error(f"登出时错误: {str(e)}")
+        return APIResponse.success(message="登出成功")  # 即使出错也返回成功，因为客户端会删除Token
 

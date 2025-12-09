@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { post, tokenManager } from '@/utils/api';
 
 const router = useRouter();
 const username = ref('');
@@ -76,38 +77,34 @@ const handleLogin = async () => {
   loading.value = true;
 
   try {
-    const response = await fetch('http://localhost:5000/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: username.value,
-        password: password.value
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      error.value = errorData.message || errorData.msg || '登录失败，请检查用户名和密码。';
-      return;
-    }
-
-    const result = await response.json();
+    const result = await post<{
+      access_token: string;
+      refresh_token: string;
+      username: string;
+      user: any;
+    }>('/login', {
+      username: username.value,
+      password: password.value
+    }, { skipAuth: true });
 
     // 检查返回数据结构
-    if (!result.data || !result.data.access_token) {
+    if (result.code !== 200 || !result.data?.access_token) {
       error.value = result.message || '登录失败，服务器返回数据格式错误。';
       return;
     }
 
-    // 1. 存储 Token (核心步骤)
-    localStorage.setItem('access_token', result.data.access_token);
+    // 存储 Token 和用户信息
+    tokenManager.saveToken(
+      result.data.access_token,
+      result.data.refresh_token
+    );
     localStorage.setItem('username', result.data.username || '');
 
-    // 2. 路由跳转到主页
+    // 路由跳转到主页
     router.push('/');
 
-  } catch (e) {
-    error.value = '网络连接失败，请检查服务器是否运行。';
+  } catch (e: any) {
+    error.value = e.message || '网络连接失败，请检查服务器是否运行。';
   } finally {
     loading.value = false;
   }

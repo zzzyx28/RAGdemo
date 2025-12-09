@@ -95,6 +95,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
+import { post, tokenManager } from '@/utils/api';
 
 const router = useRouter();
 const username = ref('');
@@ -153,20 +154,14 @@ const handleRegister = async () => {
   loading.value = true;
 
   try {
-    const response = await fetch('http://localhost:5000/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: username.value,
-        email: email.value,
-        password: password.value
-      }),
-    });
+    const result = await post('/register', {
+      username: username.value,
+      email: email.value,
+      password: password.value
+    }, { skipAuth: true });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      error.value = data.message || data.msg || '注册失败，请稍后重试。';
+    if (result.code !== 200 && result.code !== 201) {
+      error.value = result.message || '注册失败，请稍后重试。';
       return;
     }
 
@@ -178,8 +173,8 @@ const handleRegister = async () => {
       router.push('/login');
     }, 3000);
 
-  } catch (e) {
-    error.value = '网络连接失败，请检查服务器是否运行。';
+  } catch (e: any) {
+    error.value = e.message || '网络连接失败，请检查服务器是否运行。';
   } finally {
     loading.value = false;
   }

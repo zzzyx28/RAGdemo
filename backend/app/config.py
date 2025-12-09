@@ -86,6 +86,14 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         hours=get_env_int('JWT_ACCESS_TOKEN_EXPIRES_HOURS', 24)
     )
+    # Refresh Token 过期时间（默认30天）
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(
+        days=get_env_int('JWT_REFRESH_TOKEN_EXPIRES_DAYS', 30)
+    )
+    # Token 位置：从请求头中获取
+    JWT_TOKEN_LOCATION = ['headers']
+    JWT_HEADER_NAME = 'Authorization'
+    JWT_HEADER_TYPE = 'Bearer'
     
     # ========== CORS 配置 ==========
     # 开发环境默认允许 localhost，生产环境需要设置实际域名

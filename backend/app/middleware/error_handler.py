@@ -3,6 +3,17 @@
 """
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from flask_jwt_extended.exceptions import (
+    JWTExtendedException,
+    NoAuthorizationError,
+    InvalidHeaderError,
+    WrongTokenError,
+    RevokedTokenError,
+    FreshTokenRequired,
+    CSRFError,
+    UserLookupError,
+    UserClaimsVerificationError
+)
 from app.utils.exceptions import APIException
 from app.utils.responses import APIResponse
 
@@ -15,6 +26,62 @@ def register_error_handlers(app):
         app: Flask 应用实例
     """
     
+    # ========== JWT 认证错误处理 ==========
+    @app.errorhandler(NoAuthorizationError)
+    def handle_no_authorization_error(e):
+        """处理缺少认证头错误"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.unauthorized("缺少认证令牌，请先登录")
+    
+    @app.errorhandler(InvalidHeaderError)
+    def handle_invalid_header_error(e):
+        """处理无效的认证头格式错误"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.error(message="认证头格式错误", code=422)
+    
+    @app.errorhandler(WrongTokenError)
+    def handle_wrong_token_error(e):
+        """处理错误的Token类型错误"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.error(message="Token类型错误", code=422)
+    
+    @app.errorhandler(RevokedTokenError)
+    def handle_revoked_token_error(e):
+        """处理已撤销的Token错误"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.unauthorized("Token已被撤销，请重新登录")
+    
+    @app.errorhandler(FreshTokenRequired)
+    def handle_fresh_token_required(e):
+        """处理需要Fresh Token错误"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.error(message="此操作需要重新验证身份", code=422)
+    
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        """处理CSRF错误"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.error(message="CSRF验证失败", code=403)
+    
+    @app.errorhandler(UserLookupError)
+    def handle_user_lookup_error(e):
+        """处理用户查找错误"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.unauthorized("用户不存在或已被禁用")
+    
+    @app.errorhandler(UserClaimsVerificationError)
+    def handle_user_claims_verification_error(e):
+        """处理用户声明验证错误"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.error(message="Token声明验证失败", code=422)
+    
+    @app.errorhandler(JWTExtendedException)
+    def handle_jwt_extended_exception(e):
+        """处理其他JWT扩展异常"""
+        current_app.logger.warning(f"JWT Error: {str(e)}")
+        return APIResponse.unauthorized(f"认证失败: {str(e)}")
+    
+    # ========== 其他错误处理 ==========
     @app.errorhandler(APIException)
     def handle_api_exception(e: APIException):
         """处理自定义 API 异常"""

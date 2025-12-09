@@ -1,578 +1,279 @@
 <template>
   <div>
-  <v-navigation-drawer v-model="drawer" width="300" color="#f8f9fa" class="border-e">
-    <div class="pa-4">
-      <v-btn block color="primary" prepend-icon="mdi-plus" class="mb-4 text-none" elevation="0">
-        新建知识库
+    <KnowledgeBaseSidebar
+      v-model="drawer"
+      :kb-files="kbFiles"
+      :kb-stats="kbStats"
+      :is-uploading="isUploading"
+      :get-file-icon="getFileIcon"
+      :get-file-color="getFileColor"
+      :handle-file-select="handleFileSelect"
+      :handle-drop="handleDrop"
+      @delete-file="confirmDelete"
+    />
+
+    <v-app-bar fixed flat color="white" class="px-4 border-b-0 elevation-1">
+      <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
+      <v-btn variant="text" class="text-h6 font-weight-bold text-none">
+        企业知识图谱
+        <v-chip size="x-small" color="blue" class="ml-2" variant="flat">RAG开启</v-chip>
       </v-btn>
-
-      <div class="text-subtitle-2 text-grey-darken-1 mb-2 font-weight-bold">
-        当前知识库 ({{ kbStats.fileCount }})
-      </div>
-
-      <v-list density="compact" nav bg-color="transparent" v-if="kbFiles.length > 0">
-        <v-list-item
-          v-for="(file, i) in kbFiles"
-          :key="i"
-          rounded="lg"
-          :value="file.name"
-          class="mb-1 knowledge-item"
-        >
-          <template v-slot:prepend>
-            <v-icon :icon="getFileIcon(file.type)" :color="getFileColor(file.type)"></v-icon>
+      <v-spacer></v-spacer>
+      <div class="mr-2">
+        <v-menu v-if="isAuthenticated">
+          <template v-slot:activator="{ props }">
+            <v-btn
+              v-bind="props"
+              prepend-icon="mdi-account-circle"
+              variant="flat"
+              color="primary"
+              class="text-none"
+            >
+              {{ currentUsername }}
+            </v-btn>
           </template>
 
-          <v-list-item-title class="font-weight-medium text-body-2 text-truncate">{{ file.name }}</v-list-item-title>
-          <v-list-item-subtitle class="text-caption" style="font-size: 10px !important;">{{
-              file.size
-            }}
-          </v-list-item-subtitle>
+          <v-list density="compact">
+            <v-list-item @click="handleLogout" prepend-icon="mdi-logout">
+              <v-list-item-title>退出登录</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
 
-          <template v-slot:append>
-            <div class="d-flex align-center">
-              <v-icon icon="mdi-check-circle" size="small" color="success" class="status-icon"></v-icon>
-
-              <v-btn
-                icon="mdi-trash-can-outline"
-                size="x-small"
-                variant="text"
-                color="error"
-                class="delete-btn ml-1"
-                @click.stop="confirmDelete(file.name)"
-              ></v-btn>
-            </div>
-          </template>
-        </v-list-item>
-      </v-list>
-
-      <div v-else class="text-center py-10 text-grey-lighten-1">
-        <v-icon icon="mdi-folder-open-outline" size="large" class="mb-2"></v-icon>
-        <div class="text-caption">暂无文档，请上传</div>
-      </div>
-
-      <v-divider class="my-3"></v-divider>
-
-      <div
-        class="upload-zone pa-4 border-dashed rounded-lg text-center cursor-pointer position-relative"
-        :class="{ 'bg-blue-lighten-5': isDragging }"
-        @click="triggerUpload"
-        @dragover.prevent="isDragging = true"
-        @dragleave.prevent="isDragging = false"
-        @drop.prevent="handleDrop"
-        style="transition: background-color 0.2s;"
-      >
-        <div v-if="isUploading" class="d-flex flex-column align-center justify-center py-2">
-          <v-progress-circular indeterminate color="primary" size="24" class="mb-2"></v-progress-circular>
-          <div class="text-caption text-primary">正在上传并索引...</div>
-        </div>
-
-        <div v-else class="text-grey-darken-1">
-          <v-icon icon="mdi-cloud-upload" size="large" class="mb-2" :color="isDragging ? 'primary' : ''"></v-icon>
-          <div class="text-caption">
-            {{ isDragging ? '松开鼠标上传' : '点击或拖拽上传文档' }}
-            <br><span class="text-grey-lighten-1" style="font-size: 10px">(支持 PDF, Word, MD)</span>
-          </div>
-        </div>
-
-        <input
-          type="file"
-          ref="fileInput"
-          style="display: none"
-          @change="handleFileSelect"
-          accept=".pdf,.md,.txt,.doc,.docx"
-          multiple
+        <v-btn
+          v-else
+          color="primary"
+          @click="handleLoginClick"
+          append-icon="mdi-account-arrow-right"
+          class="text-none"
         >
+          登录 / 注册
+        </v-btn>
       </div>
-    </div>
-  </v-navigation-drawer>
+    </v-app-bar>
 
-  <v-app-bar flat color="transparent" class="px-4 mt-2 border-b-0">
-    <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
-    <v-btn variant="text" class="text-h6 font-weight-bold text-none">
-      企业知识图谱
-      <v-chip size="x-small" color="blue" class="ml-2" variant="flat">RAG开启</v-chip>
-    </v-btn>
-    <div class="mr-2">
-      <v-menu v-if="isAuthenticated">
-        <template v-slot:activator="{ props }">
-          <v-btn
-            v-bind="props"
-            prepend-icon="mdi-account-circle"
-            variant="flat"
-            color="primary"
-            class="text-none"
-          >
-            {{ currentUsername }}
-          </v-btn>
-        </template>
+    <v-main class="app-background">
+      <v-container class="chat-container d-flex flex-column" style="max-width: 900px; height: 100%; padding-top: 16px; padding-bottom: 16px;">
 
-        <v-list density="compact">
-          <v-list-item @click="handleLogout" prepend-icon="mdi-logout">
-            <v-list-item-title>退出登录</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
+        <div v-if="messages.length === 0" class="text-center fade-in welcome-section">
+          <h1 class="text-h4 font-weight-medium mb-2" style="color: #333;">你好，我是你的 xxx 知识助手</h1>
+          <p class="text-grey">
+            已接入 <b>{{ kbStats.fileCount }}</b> 个知识库文件
+          </p>
+        </div>
 
-      <v-btn v-else color="primary" @click="handleLoginClick" prepend-icon="mdi-account-arrow-right">
-        登录 / 注册
-      </v-btn>
-    </div>
-  </v-app-bar>
+        <div v-else class="chat-history w-100 overflow-y-auto px-2" ref="chatContainer">
+          <div v-for="(msg, index) in messages" :key="index" class="message-item mb-6">
 
-  <v-main class="app-background">
-    <v-container class="fill-height d-flex flex-column align-center" style="max-width: 900px;">
-
-      <div v-if="messages.length === 0" class="text-center mt-15 fade-in">
-        <h1 class="text-h4 font-weight-medium mb-2" style="color: #333;">你好，我是你的xxx知识助手</h1>
-        <p class="text-grey">
-          已接入 <b>{{ kbStats.fileCount }}</b> 个知识库文件
-        </p>
-      </div>
-
-      <div v-else class="chat-history w-100 mb-4 overflow-y-auto px-2" style="flex: 1;" ref="chatContainer">
-        <div v-for="(msg, index) in messages" :key="index" class="mb-6">
-          <div v-if="msg.role === 'user'" class="d-flex justify-end">
-            <v-sheet color="primary" class="pa-3 rounded-lg text-body-1" style="max-width: 80%;">
-              {{ msg.content }}
-            </v-sheet>
-          </div>
-
-          <div v-else class="d-flex align-start">
-            <v-avatar color="teal-lighten-5" class="mr-3 mt-1" size="36">
-              <v-icon icon="mdi-robot" color="teal"></v-icon>
-            </v-avatar>
-            <div style="max-width: 100%;">
-              <div v-if="msg.isRagSearching" class="d-flex align-center text-caption text-blue mb-2">
-                <v-progress-circular indeterminate size="16" width="2" color="blue"
-                                     class="mr-2"></v-progress-circular>
-                正在检索知识库...
-              </div>
-
-              <v-sheet class="pa-0 bg-transparent text-body-1 text-grey-darken-3">
-                <div style="white-space: pre-wrap;">{{ msg.content }}</div>
+            <div v-if="msg.role === 'user'" class="d-flex justify-end">
+              <v-sheet
+                color="primary"
+                class="pa-3 text-body-1 message-bubble user-message"
+                style="max-width: 80%; word-wrap: break-word;"
+              >
+                <div style="white-space: pre-wrap; color: white;">{{ msg.content }}</div>
               </v-sheet>
             </div>
+
+            <div v-else class="d-flex align-start">
+              <v-avatar color="teal-lighten-5" class="mr-3 mt-1" size="36">
+                <v-icon icon="mdi-robot" color="teal-darken-1"></v-icon>
+              </v-avatar>
+              <div class="assistant-message" style="max-width: calc(100% - 48px);">
+
+                <div v-if="msg.isRagSearching" class="d-flex align-center text-caption text-blue mb-2">
+                  <v-progress-circular indeterminate size="16" width="2" color="blue"
+                                       class="mr-2"></v-progress-circular>
+                  正在检索知识库...
+                </div>
+
+                <v-sheet
+                  class="pa-3 text-body-1 message-bubble assistant-message-bubble"
+                  style="background-color: #f5f5f5; word-wrap: break-word;"
+                  :class="{'mt-2': msg.isRagSearching && !msg.content}"
+                >
+                  <div style="white-space: pre-wrap; color: #333;">{{ msg.content || '正在思考...' }}</div>
+                </v-sheet>
+
+                <div
+                  v-if="msg.sources && msg.sources.length && msg.content"
+                  class="mt-2 text-caption text-grey-darken-1 d-flex flex-wrap align-start"
+                >
+                  <v-icon size="small" icon="mdi-lightbulb-on-outline" class="mr-1 mt-1"></v-icon>
+                  <div class="font-weight-medium mr-2 mt-1">参考来源:</div>
+                  <v-chip
+                    v-for="(source, sIndex) in msg.sources"
+                    :key="sIndex"
+                    size="x-small"
+                    class="ml-0 mr-1 mt-1"
+                    color="grey-lighten-3"
+                    variant="flat"
+                  >
+                    {{ source.filename }} (P{{ source.page }})
+                  </v-chip>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="w-100 pb-4 pt-2 bg-transparent" style="position: sticky; bottom: 0; z-index: 10;">
-        <v-card class="input-card w-100 pa-2 rounded-xl elevation-3">
-          <v-textarea
-            v-model="inputMessage"
-            variant="plain"
-            placeholder="请输入您的问题..."
-            auto-grow rows="1" max-rows="8" hide-details class="px-2"
-            @keydown.enter.prevent="sendMessage"
-          ></v-textarea>
-          <div class="d-flex align-center px-2 pb-1 mt-2">
-            <v-switch v-model="ragEnabled" density="compact" color="primary" hide-details label="RAG"
-                      class="mr-4"></v-switch>
-            <v-spacer></v-spacer>
-            <v-btn icon="mdi-arrow-up" color="primary" class="rounded-circle" :disabled="!inputMessage || isLoading"
-                   @click="sendMessage"></v-btn>
-          </div>
-        </v-card>
-      </div>
+        <div class="w-100 input-wrapper">
+          <v-card class="input-card w-100 pa-2 rounded-xl elevation-3">
+            <v-textarea
+              v-model="inputMessage"
+              variant="plain"
+              placeholder="请输入您的问题..."
+              auto-grow rows="1" max-rows="8" hide-details class="px-2"
+              @keydown="handleKeyDown"
+            ></v-textarea>
+            <div class="d-flex align-center px-2 pb-1 mt-2">
+              <v-switch v-model="ragEnabled" density="compact" color="primary" hide-details label="RAG"
+                        class="mr-4"></v-switch>
+              <v-spacer></v-spacer>
+              <v-btn icon="mdi-arrow-up" color="primary" class="rounded-circle" :disabled="!inputMessage || isLoading"
+                     @click="sendMessage"></v-btn>
+            </div>
+          </v-card>
+        </div>
 
-    </v-container>
-  </v-main>
+      </v-container>
+    </v-main>
+
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="snackbar.timeout"
+      multi-line
+    >
+      {{ snackbar.text }}
+      <template v-slot:actions>
+        <v-btn
+          :color="snackbar.color === 'error' ? 'white' : 'white'"
+          variant="text"
+          @click="snackbar.show = false"
+        >
+          关闭
+        </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
 <script setup lang="ts">
-import {ref, nextTick, onMounted, watch} from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, watch, onMounted } from 'vue';
+import KnowledgeBaseSidebar from '@/components/KnowledgeBaseSidebar.vue';
+import { useAuth } from '@/composables/useAuth';
+import { useSnackbar } from '@/composables/useSnackbar';
+import { useKnowledgeBase } from '@/composables/useKnowledgeBase';
+import { useChat } from '@/composables/useChat';
 
-const router = useRouter();
+// 使用 composables
+const { isAuthenticated, currentUsername, handleLogout, handleLoginClick, updateAuthState } = useAuth();
+const { snackbar, showSnackbar, parseErrorMsg } = useSnackbar();
+const {
+  kbFiles,
+  kbStats,
+  isUploading,
+  fetchKbInfo,
+  confirmDelete,
+  handleFileSelect,
+  handleDrop,
+  getFileIcon,
+  getFileColor
+} = useKnowledgeBase(isAuthenticated, showSnackbar, parseErrorMsg);
 
-// 添加认证状态管理
-const isAuthenticated = ref(!!localStorage.getItem('access_token'))
-const currentUsername = ref(localStorage.getItem('username') || '')
+const {
+  messages,
+  inputMessage,
+  isLoading,
+  ragEnabled,
+  chatContainer,
+  sendMessage,
+  handleKeyDown
+} = useChat(isAuthenticated, showSnackbar);
 
-// 监听 storage 变化以响应登录/登出状态变化
-const updateAuthState = () => {
-  isAuthenticated.value = !!localStorage.getItem('access_token')
-  currentUsername.value = localStorage.getItem('username') || ''
-}
-// 页面加载时更新认证状态
-updateAuthState()
+// 侧边栏状态
+const drawer = ref(true);
 
-// 监听 localStorage 变化
-window.addEventListener('storage', updateAuthState)
-
-// 添加登出处理函数
-const handleLogout = () => {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('username')
-  updateAuthState()
-  router.push('/login')
-}
-
-// 【关键修改】处理登录点击：先清除旧Token，防止路由守卫循环跳转
-const handleLoginClick = () => {
-  console.log('点击了登录注册，清理旧状态...');
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('username');
-  isAuthenticated.value = false;
-  router.push('/login');
-}
-
-// --- 定义状态 ---
-const drawer = ref(true); // 默认打开侧边栏
-const kbFiles = ref<any[]>([]); // 存储文件列表
-const kbStats = ref({fileCount: 0, vectorCount: 0}); // 存储统计信息
-const fileInput = ref<HTMLInputElement | null>(null);
-const isUploading = ref(false); // 上传中状态
-const isDragging = ref(false);  // 拖拽悬停状态
-const ragEnabled = ref(true); // 默认开启RAG
-interface Source {
-  filename: string;
-  page: number;
-}
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  isRagSearching?: boolean; // RAG 状态：是否正在检索
-  sources?: Source[];    // RAG 结果：引用来源
-}
-
-const inputMessage = ref('');
-const messages = ref<Message[]>([]);
-const isLoading = ref(false);
-
-// 触发点击
-const triggerUpload = () => {
-  if (!isUploading.value) fileInput.value?.click();
-};
-
-// 处理点击选择文件
-const handleFileSelect = (e: Event) => {
-  const files = (e.target as HTMLInputElement).files;
-  if (files && files.length > 0) {
-    uploadFiles(files);
+// 监听登录状态变化，登录后自动刷新知识库信息
+watch(isAuthenticated, (newVal, oldVal) => {
+  // 当从未登录变为已登录时，刷新知识库信息
+  if (newVal && !oldVal) {
+    fetchKbInfo();
+  } else if (!newVal && oldVal) {
+    // 登出时清空知识库信息
+    kbFiles.value = [];
+    kbStats.value = { fileCount: 0, vectorCount: 0 };
   }
-};
-
-// 处理拖拽放下文件
-const handleDrop = (e: DragEvent) => {
-  isDragging.value = false;
-  const files = e.dataTransfer?.files;
-  if (files && files.length > 0) {
-    uploadFiles(files);
-  }
-};
-
-// 上传知识库\文件
-const uploadFiles = async (fileList: FileList) => {
-  isUploading.value = true;
-  const formData = new FormData();
-
-  // 将所有文件添加到 FormData
-  Array.from(fileList).forEach((file) => {
-    formData.append('file', file);
-  });
-
-  try {
-    const token = localStorage.getItem('access_token');
-    const headers: HeadersInit = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch('http://localhost:5000/api/upload', {
-      method: 'POST',
-      headers: headers,
-      body: formData, // fetch 会自动设置 Content-Type 为 multipart/form-data
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      // 后端返回格式: {code, message, errors: {details: [...]}}
-      const errorMsg = data.errors?.details
-        ? (Array.isArray(data.errors.details) ? data.errors.details.join('; ') : data.errors.details)
-        : data.message || '未知错误';
-      alert(`上传失败: ${errorMsg}`);
-      return;
-    }
-
-    console.log('上传成功:', data);
-
-    // 上传成功后，立即刷新知识库列表，更新界面
-    await fetchKbInfo();
-
-  } catch (error) {
-    console.error('Network Error:', error);
-    alert('网络错误，无法连接服务器');
-  } finally {
-    isUploading.value = false;
-    // 清空 input，防止同名文件无法再次触发 change 事件
-    if (fileInput.value) fileInput.value.value = '';
-  }
-};
-
-
-// --- 删除文件逻辑 ---
-const confirmDelete = async (filename: string) => {
-  if (!confirm(`确定删除 "${filename}" 吗？`)) return;
-
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      alert('请先登录');
-      return;
-    }
-
-    // 严格按照后端要求传递filename参数
-    const response = await fetch('http://localhost:5000/api/delete', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` // 补充认证头
-      },
-      body: JSON.stringify({ filename: filename }), // 与后端参数名完全匹配
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.code === 200) {
-      await fetchKbInfo(); // 刷新文件列表
-    } else {
-      // 后端返回格式: {code, message, errors?}
-      const errorMsg = result.message || result.errors?.details || '未知错误';
-      alert(`删除失败: ${errorMsg}`);
-    }
-  } catch (error) {
-    console.error('删除错误:', error);
-    alert('网络错误，无法连接服务器');
-  }
-};
-
-
-// --- 获取知识库信息 ---
-const fetchKbInfo = async () => {
-  try {
-    const res = await fetch('http://localhost:5000/api/kb-info');
-    const result = await res.json();
-
-    if (res.ok && result.code === 200) {
-      // 后端返回格式: {code, message, data: {file_count, vector_count, files}}
-      kbFiles.value = result.data?.files || [];
-      kbStats.value = {
-        fileCount: result.data?.file_count || 0,
-        vectorCount: result.data?.vector_count || 0
-      };
-    } else {
-      console.error("获取知识库信息失败:", result.message || '未知错误');
-    }
-  } catch (error) {
-    console.error("获取知识库信息失败:", error);
-  }
-};
+});
 
 // 组件加载时获取数据
 onMounted(() => {
+  // 确保认证状态是最新的
   updateAuthState();
+  // 获取知识库信息（如果已登录）
   fetchKbInfo();
 });
-
-// --- UI 辅助函数 ---
-const formatNumber = (num: number) => {
-  return new Intl.NumberFormat('en-US').format(num);
-};
-
-const getFileIcon = (type: string) => {
-  switch (type) {
-    case 'pdf':
-      return 'mdi-file-pdf-box';
-    case 'md':
-      return 'mdi-language-markdown';
-    case 'doc':
-    case 'docx':
-      return 'mdi-file-word-box';
-    case 'txt':
-      return 'mdi-file-document-outline';
-    default:
-      return 'mdi-file';
-  }
-};
-
-const getFileColor = (type: string) => {
-  switch (type) {
-    case 'pdf':
-      return 'red-darken-1';
-    case 'md':
-      return 'black';
-    case 'docx':
-      return 'blue-darken-2';
-    default:
-      return 'grey';
-  }
-}
-
-const sendMessage = async () => {
-  if (!inputMessage.value.trim() || isLoading.value) return;
-
-  const userText = inputMessage.value;
-  messages.value.push({role: 'user', content: userText});
-  inputMessage.value = '';
-  isLoading.value = true;
-
-  // 核心修改：获取 Token 并添加到 Headers
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    alert("请先登录！");
-    isLoading.value = false;
-    return;
-  }
-
-  try {
-    // 1. 先创建一个空的助手消息，状态为"正在检索"
-    const assistantMsgIndex = messages.value.push({
-      role: 'assistant',
-      content: '',
-      isRagSearching: ragEnabled.value,
-      sources: []
-    }) - 1;
-
-    const response = await fetch('http://localhost:5000/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        message: userText,
-        use_rag: ragEnabled.value
-      }),
-    });
-
-    // 处理认证错误
-    if (response.status === 401) {
-      alert('登录状态已失效，请重新登录。');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('username');
-      router.push('/login');
-      isLoading.value = false;
-      // 移除刚添加的助手消息
-      if (messages.value.length > 0) {
-        const lastMsg = messages.value[messages.value.length - 1];
-        if (lastMsg?.role === 'assistant') {
-          messages.value.pop();
-        }
-      }
-      return;
-    }
-
-    // 处理 422 错误（JWT token 无效）
-    if (response.status === 422) {
-      const errorData = await response.json();
-      alert(`认证失败: ${errorData.msg || errorData.message || 'Token 无效，请重新登录'}`);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('username');
-      router.push('/login');
-      isLoading.value = false;
-      // 移除刚添加的助手消息
-      if (messages.value.length > 0) {
-        const lastMsg2 = messages.value[messages.value.length - 1];
-        if (lastMsg2?.role === 'assistant') {
-          messages.value.pop();
-        }
-      }
-      return;
-    }
-
-    // 处理其他错误状态码
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: '未知错误' }));
-      const lastIndex = messages.value.length - 1;
-      if (lastIndex >= 0) {
-        const assistantMsg = messages.value[lastIndex];
-        if (assistantMsg && assistantMsg.role === 'assistant') {
-          assistantMsg.content = `请求失败: ${errorData.error || errorData.message || '服务器错误'}`;
-          assistantMsg.isRagSearching = false;
-        }
-      }
-      isLoading.value = false;
-      return;
-    }
-
-    // 检查响应体是否存在
-    if (!response.body) {
-      const lastIndex = messages.value.length - 1;
-      if (lastIndex >= 0) {
-        const assistantMsg = messages.value[lastIndex];
-        if (assistantMsg && assistantMsg.role === 'assistant') {
-          assistantMsg.content = "服务器未返回数据";
-          assistantMsg.isRagSearching = false;
-        }
-      }
-      isLoading.value = false;
-      return;
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const {done, value} = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, {stream: true});
-      const lines = buffer.split('\n\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const dataStr = line.slice(6);
-          if (dataStr === '[DONE]') break;
-
-          const data = JSON.parse(dataStr);
-
-          // 2. 处理特定事件：检索完成
-          const assistantMsg = messages.value[assistantMsgIndex];
-          if (!assistantMsg) continue;
-
-          if (data.type === 'searching_end') {
-            assistantMsg.isRagSearching = false;
-            if (data.sources) {
-              assistantMsg.sources = data.sources;
-            }
-          }
-          // 3. 处理流式文本
-          else if (data.content) {
-            assistantMsg.isRagSearching = false;
-            assistantMsg.content += data.content;
-          }
-        }
-      }
-    }
-  } catch (e) {
-    console.error(e);
-    const lastIndex = messages.value.length - 1;
-    if (lastIndex >= 0) {
-      const assistantMsg = messages.value[lastIndex];
-      if (assistantMsg && assistantMsg.role === 'assistant') {
-        assistantMsg.content = "系统错误，请检查后端连接。";
-        assistantMsg.isRagSearching = false;
-      }
-    }
-  } finally {
-    isLoading.value = false;
-  }
-}
 </script>
 
 <style scoped>
 .app-background {
   background-color: #fbfbfb;
+  padding-top: 64px !important;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.border-dashed {
-  border: 2px dashed #e0e0e0;
+.chat-container {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-history {
+  flex: 1;
+  min-height: 0;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  scroll-behavior: smooth;
+  /* 自定义滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.chat-history::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.welcome-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.input-wrapper {
+  flex-shrink: 0;
+  padding-top: 16px;
+  background-color: #fbfbfb;
+  position: relative;
+  z-index: 10;
 }
 
 .input-card {
@@ -585,16 +286,63 @@ const sendMessage = async () => {
   box-shadow: 0 4px 20px rgba(33, 150, 243, 0.15) !important;
 }
 
-/* 让删除按钮默认隐藏，悬停时显示 */
-.delete-btn {
-  display: none;
+/* 消息气泡样式优化 */
+.message-item {
+  animation: fadeIn 0.3s ease-in;
 }
 
-.knowledge-item:hover .delete-btn {
-  display: inline-flex;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.knowledge-item:hover .status-icon {
-  display: none; /* 悬停时隐藏绿勾，显示垃圾桶 */
+.message-bubble {
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.user-message {
+  /* 现代非对称圆角 */
+  border-radius: 18px 18px 6px 18px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.assistant-message-bubble {
+  /* 现代非对称圆角 */
+  border-radius: 18px 18px 18px 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
+}
+
+/* 响应式优化 */
+@media (max-width: 600px) {
+  .chat-container {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .chat-history {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .message-item {
+    margin-bottom: 12px !important;
+  }
+
+  .user-message,
+  .assistant-message {
+    max-width: 90% !important;
+  }
+
+  .input-card {
+    margin: 0 4px;
+  }
 }
 </style>
