@@ -291,7 +291,7 @@ const uploadFiles = async (fileList: FileList) => {
 
     if (!response.ok) {
       // 后端返回格式: {code, message, errors: {details: [...]}}
-      const errorMsg = data.errors?.details 
+      const errorMsg = data.errors?.details
         ? (Array.isArray(data.errors.details) ? data.errors.details.join('; ') : data.errors.details)
         : data.message || '未知错误';
       alert(`上传失败: ${errorMsg}`);
@@ -336,7 +336,7 @@ const confirmDelete = async (filename: string) => {
     });
 
     const result = await response.json();
-    
+
     if (response.ok && result.code === 200) {
       await fetchKbInfo(); // 刷新文件列表
     } else {
@@ -356,7 +356,7 @@ const fetchKbInfo = async () => {
   try {
     const res = await fetch('http://localhost:5000/api/kb-info');
     const result = await res.json();
-    
+
     if (res.ok && result.code === 200) {
       // 后端返回格式: {code, message, data: {file_count, vector_count, files}}
       kbFiles.value = result.data?.files || [];
