@@ -11,8 +11,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ChatHistorySidebar: typeof import('./components/ChatHistorySidebar.vue')['default']
     KnowledgeBaseSidebar: typeof import('./components/KnowledgeBaseSidebar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    UnifiedSidebar: typeof import('./components/UnifiedSidebar.vue')['default']
   }
 }

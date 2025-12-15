@@ -10,10 +10,23 @@ export interface Source {
 }
 
 export interface Message {
+  id?: number;
+  conversation_id?: number;
   role: 'user' | 'assistant';
   content: string;
   isRagSearching?: boolean;
   sources?: Source[];
+  created_at?: string;
+}
+
+export interface Conversation {
+  id: number;
+  user_id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  messages?: Message[];
 }
 
 export interface SnackbarState {

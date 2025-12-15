@@ -1,9 +1,9 @@
 <template>
-  <v-container class="fill-height" fluid>
+  <v-container class="fill-height login-container" fluid>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="4">
-        <v-card class="pa-6 rounded-xl elevation-5">
-          <v-card-title class="text-h4 text-center mb-4 font-weight-bold">
+        <v-card class="pa-6 rounded-xl" style="box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: none;">
+          <v-card-title class="text-h4 text-center mb-4" style="font-weight: 500; color: #2c3e50;">
             企业助手登录 🔒
           </v-card-title>
 
@@ -60,6 +60,12 @@
     </v-row>
   </v-container>
 </template>
+
+<style scoped>
+.login-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+</style>
 
 <script setup lang="ts">
 import { ref } from 'vue';

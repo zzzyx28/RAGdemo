@@ -14,9 +14,10 @@ from app.middleware.error_handler import register_error_handlers
 from app.api.auth import auth_bp
 from app.api.core import core_bp
 from app.api.kb import kb_bp
+from app.api.chat import chat_bp
 
 # 导入模型（确保 SQLAlchemy 能创建表）
-from app.models import User  # noqa: F401
+from app.models import User, Conversation, Message  # noqa: F401
 
 
 def create_app(config_name='default'):
@@ -41,7 +42,8 @@ def create_app(config_name='default'):
         r"/api/*": {
             "origins": app.config['CORS_ORIGINS'],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": app.config.get('CORS_EXPOSE_HEADERS', [])
         }
     })
     
@@ -56,6 +58,7 @@ def create_app(config_name='default'):
     app.register_blueprint(auth_bp)
     app.register_blueprint(core_bp)
     app.register_blueprint(kb_bp)
+    app.register_blueprint(chat_bp)
     
     # 初始化数据库
     init_database(app)

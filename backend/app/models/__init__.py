@@ -2,6 +2,7 @@
 数据模型
 """
 from app.models.user import User
+from app.models.conversation import Conversation, Message
 
-__all__ = ['User']
+__all__ = ['User', 'Conversation', 'Message']
 

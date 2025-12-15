@@ -1,10 +1,10 @@
 #file:src/pages/Register.vue
 <template>
-  <v-container class="fill-height" fluid>
+  <v-container class="fill-height register-container" fluid>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="4">
-        <v-card class="pa-6 rounded-xl elevation-5">
-          <v-card-title class="text-h4 text-center mb-4 font-weight-bold">
+        <v-card class="pa-6 rounded-xl" style="box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: none;">
+          <v-card-title class="text-h4 text-center mb-4" style="font-weight: 500; color: #2c3e50;">
             用户注册 📝
           </v-card-title>
 
@@ -175,8 +175,14 @@ const handleRegister = async () => {
 
   } catch (e: any) {
     error.value = e.message || '网络连接失败，请检查服务器是否运行。';
-  } finally {
-    loading.value = false;
-  }
-};
+    } finally {
+      loading.value = false;
+    }
+  };
 </script>
+
+<style scoped>
+.register-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+</style>

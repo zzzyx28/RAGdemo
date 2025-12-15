@@ -3,7 +3,7 @@
                        width="300" color="#f8f9fa" class="border-e">
     <div class="pa-4">
       <v-btn block color="primary" prepend-icon="mdi-plus" class="mb-4 text-none" elevation="0" disabled>
-        新建知识库 (暂不启用)
+        新建知识库
       </v-btn>
 
       <div class="text-subtitle-2 text-grey-darken-1 mb-2 font-weight-bold">

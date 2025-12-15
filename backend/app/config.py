@@ -99,8 +99,16 @@ class Config:
     # 开发环境默认允许 localhost，生产环境需要设置实际域名
     CORS_ORIGINS = get_env_list(
         'CORS_ORIGINS',
-        ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173']
+        [
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:8080'
+        ]
     )
+    
+    # CORS 暴露的响应头（允许前端读取自定义响应头）
+    CORS_EXPOSE_HEADERS = ['X-Conversation-Id']
     
     # ========== 文件上传配置 ==========
     MAX_UPLOAD_SIZE = get_env_int('MAX_UPLOAD_SIZE', 10485760)  # 默认 10MB

@@ -4,7 +4,9 @@ import type { Message } from '@/types/chat';
 
 export function useChat(
   isAuthenticated: Ref<boolean>,
-  showSnackbar: (text: string, color?: 'success' | 'error' | 'warning' | 'info') => void
+  showSnackbar: (text: string, color?: 'success' | 'error' | 'warning' | 'info') => void,
+  currentConversationId?: Ref<number | null>,
+  refreshConversations?: () => void
 ) {
   const router = useRouter();
   const messages = ref<Message[]>([]);
@@ -49,6 +51,7 @@ export function useChat(
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let conversationIdFromStream: number | null = null;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -66,8 +69,27 @@ export function useChat(
           try {
             const data = JSON.parse(dataStr);
 
+            // 处理 conversation_id（从流式响应中获取）
+            if (data.type === 'conversation_id' && data.conversation_id) {
+              conversationIdFromStream = parseInt(data.conversation_id, 10);
+              if (!isNaN(conversationIdFromStream) && currentConversationId) {
+                const oldId = currentConversationId.value;
+                currentConversationId.value = conversationIdFromStream;
+                console.log('[Chat] 从流式响应获取对话ID:', { 
+                  oldId, 
+                  newId: conversationIdFromStream 
+                });
+                
+                // 如果是新创建的对话，延迟刷新列表
+                if ((oldId === null || oldId === undefined) && refreshConversations) {
+                  setTimeout(() => {
+                    refreshConversations();
+                  }, 500);
+                }
+              }
+            }
             // 处理特定事件：检索完成
-            if (data.type === 'searching_end') {
+            else if (data.type === 'searching_end') {
               assistantMsg.isRagSearching = false;
               if (data.sources) {
                 assistantMsg.sources = data.sources;
@@ -86,6 +108,15 @@ export function useChat(
       }
     }
 
+    // 流式响应完成后，确保对话ID被正确设置
+    if (conversationIdFromStream && currentConversationId) {
+      if (currentConversationId.value !== conversationIdFromStream) {
+        console.warn('[Chat] 对话ID不一致，更新为:', conversationIdFromStream);
+        currentConversationId.value = conversationIdFromStream;
+      }
+      console.log('[Chat] 流式响应完成，最终对话ID:', currentConversationId.value);
+    }
+
     // 流式响应完成后滚动到底部
     scrollToBottom();
   }
@@ -98,6 +129,11 @@ export function useChat(
       showSnackbar('请先登录后再进行对话', 'warning');
       return;
     }
+    
+    // 调试：检查 currentConversationId 的状态
+    console.log('[Chat] sendMessage 开始');
+    console.log('[Chat] currentConversationId ref 存在:', !!currentConversationId);
+    console.log('[Chat] currentConversationId.value:', currentConversationId?.value);
 
     const userText = inputMessage.value;
     messages.value.push({ role: 'user', content: userText });
@@ -125,6 +161,12 @@ export function useChat(
       }
 
       const performRequest = async (current_token: string) => {
+        // 获取当前对话ID（确保正确传递）
+        const conversationId = currentConversationId?.value ?? null;
+        
+        // 调试日志
+        console.log('[Chat] 发送消息，当前对话ID:', conversationId);
+        
         return fetch('http://localhost:5000/api/chat', {
           method: 'POST',
           headers: {
@@ -133,7 +175,8 @@ export function useChat(
           },
           body: JSON.stringify({
             message: userText,
-            use_rag: ragEnabled.value
+            use_rag: ragEnabled.value,
+            ...(conversationId ? { conversation_id: conversationId } : {})  // 只有存在时才传递
           }),
         });
       };
@@ -147,6 +190,7 @@ export function useChat(
         if (newToken) {
           token = newToken; // 更新token
           response = await performRequest(newToken); // 使用新Token重试
+          // 重试后需要重新读取响应头
         } else {
           showSnackbar('登录状态已失效，请重新登录。', 'warning');
           tokenManager.clearTokens();
@@ -156,6 +200,9 @@ export function useChat(
           return;
         }
       }
+      
+      // 注意：对于流式响应，响应头可能无法读取
+      // conversation_id 会从流式响应的第一个数据包中获取
 
       // 处理 422 错误（JWT token 无效）或重试后的非200/401错误
       if (!response.ok) {
@@ -181,8 +228,13 @@ export function useChat(
         return;
       }
 
-      // 处理流式响应
+      // 处理流式响应（conversation_id 会在流式响应中获取）
       await processStreamResponse(response, assistantMsgIndex);
+
+      // 流式响应完成后，刷新对话列表
+      if (refreshConversations) {
+        refreshConversations();
+      }
 
     } catch (e: any) {
       console.error(e);
@@ -197,6 +249,20 @@ export function useChat(
     }
   };
 
+  // 加载对话消息
+  const loadMessages = (conversationMessages: Message[]) => {
+    messages.value = conversationMessages.map(msg => ({
+      ...msg,
+      isRagSearching: false
+    }));
+    scrollToBottom();
+  };
+
+  // 清空消息
+  const clearMessages = () => {
+    messages.value = [];
+  };
+
   return {
     messages,
     inputMessage,
@@ -204,7 +270,9 @@ export function useChat(
     ragEnabled,
     chatContainer,
     sendMessage,
-    handleKeyDown
+    handleKeyDown,
+    loadMessages,
+    clearMessages
   };
 }
 
