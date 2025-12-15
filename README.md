@@ -1,596 +1,165 @@
 # 企业知识图谱智能助手系统
 
-一个基于 RAG（检索增强生成）技术的企业知识图谱智能助手系统，支持用户认证、知识库管理和智能问答功能。
+基于 RAG（检索增强生成）技术的企业知识助手系统，支持用户认证、知识库管理和智能问答。
 
-## 📋 项目简介
+## 核心功能
 
-本项目是一个前后端分离的企业级知识助手系统，采用 Flask + Vue 3 技术栈构建。系统支持用户注册登录、知识库文件上传管理，以及基于向量数据库的智能问答功能。通过 RAG 技术，系统能够从上传的知识库文件中检索相关信息，为用户的提问提供更准确、更有依据的答案。
+- 🔐 **用户认证**：注册、登录，JWT Token 认证（Access Token + Refresh Token）
+- 📚 **知识库管理**：支持多种格式文件上传（txt, pdf, md, doc, docx, csv），文件管理
+- 💬 **智能问答**：RAG 模式和非 RAG 模式的流式聊天，显示参考来源
+- 🎨 **现代化 UI**：基于 Vuetify 3 的 Material Design 界面，响应式布局
 
-### 核心功能
+## 技术栈
 
-- 🔐 **用户认证系统**：支持用户注册、登录，使用 JWT Token（Access Token + Refresh Token）进行身份验证，自动刷新 Token
-- 📚 **知识库管理**：支持多种格式文件上传（txt, pdf, md, doc, docx, csv），文件列表查看和删除，实时显示知识库统计信息
-- 💬 **智能问答**：支持 RAG 模式和非 RAG 模式的流式聊天，提供打字机效果，显示参考来源
-- 🎨 **现代化 UI**：基于 Vuetify 3 的 Material Design 界面设计，响应式布局，支持移动端
-- 🔄 **实时同步**：支持多标签页登录状态同步，页面可见性变化时自动更新认证状态
+**后端**
+- Flask 3.0+ / SQLAlchemy / SQLite
+- Flask-JWT-Extended（JWT 认证）
+- ChromaDB（向量数据库）
+- Flask-CORS
 
-## 🛠️ 技术栈
+**前端**
+- Vue 3 + TypeScript
+- Vuetify 3
+- Vue Router 4
+- Vite 7+
 
-### 后端
-
-- **框架**：Flask 3.0+
-- **数据库**：SQLite（SQLAlchemy ORM）
-- **认证**：Flask-JWT-Extended（支持 Access Token 和 Refresh Token）
-- **向量数据库**：ChromaDB（用于存储和检索文档向量）
-- **跨域**：Flask-CORS
-- **环境配置**：python-dotenv
-
-### 前端
-
-- **框架**：Vue 3 + TypeScript
-- **UI 组件库**：Vuetify 3
-- **路由**：Vue Router 4
-- **构建工具**：Vite 7+
-- **包管理器**：pnpm
-- **状态管理**：Composition API（Composables）
-
-## 📁 项目结构
-
-```
-demo1/
-├── backend/                    # 后端服务
-│   ├── app/
-│   │   ├── api/               # API 路由
-│   │   │   ├── auth/          # 认证相关路由（注册、登录、登出、刷新Token）
-│   │   │   ├── core/          # 核心功能路由（聊天）
-│   │   │   └── kb/            # 知识库管理路由（上传、删除、查询）
-│   │   ├── config.py          # 配置文件
-│   │   ├── extensions.py      # Flask 扩展初始化
-│   │   ├── middleware/        # 中间件（错误处理）
-│   │   ├── models/            # 数据模型（User）
-│   │   └── utils/             # 工具函数（响应、异常、验证器）
-│   ├── instance/              # 实例文件夹
-│   │   ├── demo.db            # SQLite 数据库
-│   │   └── chroma_db/         # ChromaDB 向量数据库
-│   ├── logs/                  # 日志文件
-│   ├── uploads/               # 上传文件存储
-│   └── run.py                 # 应用启动入口
-│
-├── frontend/                  # 前端应用
-│   ├── src/
-│   │   ├── components/        # 组件
-│   │   │   └── KnowledgeBaseSidebar.vue  # 知识库侧边栏
-│   │   ├── composables/       # 组合式函数
-│   │   │   ├── useAuth.ts     # 认证相关逻辑
-│   │   │   ├── useChat.ts     # 聊天相关逻辑
-│   │   │   ├── useKnowledgeBase.ts  # 知识库管理逻辑
-│   │   │   └── useSnackbar.ts # 消息提示逻辑
-│   │   ├── pages/             # 页面
-│   │   │   ├── Home.vue       # 主页（聊天界面）
-│   │   │   ├── Login.vue      # 登录页
-│   │   │   └── Register.vue   # 注册页
-│   │   ├── plugins/           # 插件配置
-│   │   │   └── vuetify.ts    # Vuetify 配置
-│   │   ├── router/            # 路由配置
-│   │   │   └── index.ts      # 路由定义和守卫
-│   │   ├── types/             # TypeScript 类型定义
-│   │   │   └── chat.ts       # 聊天相关类型
-│   │   ├── utils/             # 工具函数
-│   │   │   └── api.ts        # API 请求封装和 Token 管理
-│   │   └── styles/            # 样式文件
-│   ├── package.json
-│   └── vite.config.mts
-│
-├── requirements.txt           # Python 依赖
-├── .gitignore                # Git 忽略文件
-└── README.md                 # 项目说明文档
-```
-
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
+- Python 3.8+
+- Node.js 16+
+- pnpm（推荐）或 npm/yarn
 
-- **Python**：3.8 或更高版本
-- **Node.js**：16 或更高版本
-- **包管理器**：pnpm（推荐）或 npm/yarn
-
-### 后端设置
-
-1. **创建虚拟环境**（推荐）
+### 后端启动
 
 ```bash
-# 在项目根目录
+# 创建虚拟环境
 python -m venv venv
 
+# 激活虚拟环境
 # Windows
 venv\Scripts\activate
-
 # Linux/Mac
 source venv/bin/activate
-```
 
-2. **安装依赖**
-
-```bash
+# 安装依赖
 pip install -r requirements.txt
-```
 
-3. **配置环境变量**（可选）
-
-在项目根目录或 `backend` 目录下创建 `.env` 文件：
-
-```env
-# Flask 环境
-FLASK_ENV=development
-
-# JWT 密钥（生产环境必须设置强密钥）
-JWT_SECRET_KEY=your-secret-key-here-change-in-production
-
-# 数据库配置
-DATABASE_URL=sqlite:///demo.db
-
-# CORS 配置（多个域名用逗号分隔）
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-
-# JWT Token 过期时间（可选）
-JWT_ACCESS_TOKEN_EXPIRES_HOURS=24
-JWT_REFRESH_TOKEN_EXPIRES_DAYS=30
-```
-
-> **注意**：如果不创建 `.env` 文件，系统会使用默认配置。生产环境请务必设置 `JWT_SECRET_KEY`。
-
-4. **启动后端服务**
-
-```bash
+# 启动服务
 cd backend
 python run.py
 ```
 
-后端服务将在 `http://localhost:5000` 启动。
+后端服务运行在 `http://localhost:5000`
 
-### 前端设置
-
-1. **安装依赖**
+### 前端启动
 
 ```bash
 cd frontend
 pnpm install
-# 或
-npm install
-```
-
-2. **启动开发服务器**
-
-```bash
 pnpm dev
-# 或
-npm run dev
 ```
 
-前端应用将在 `http://localhost:5173` 启动。
+前端应用运行在 `http://localhost:5173`
 
-3. **构建生产版本**
+### 环境变量（可选）
 
-```bash
-pnpm build
-# 或
-npm run build
+在项目根目录创建 `.env` 文件：
+
+```env
+# JWT 密钥（生产环境必须设置）
+JWT_SECRET_KEY=your-secret-key-here
+
+# CORS 配置（多个域名用逗号分隔）
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+
+# Token 过期时间（可选）
+JWT_ACCESS_TOKEN_EXPIRES_HOURS=24
+JWT_REFRESH_TOKEN_EXPIRES_DAYS=30
 ```
 
-构建产物在 `frontend/dist/` 目录。
+> 开发环境可使用默认配置，生产环境必须设置 `JWT_SECRET_KEY`
 
-## 📡 API 接口文档
+## 项目结构
 
-### 认证接口
-
-#### 用户注册
-- **URL**：`POST /api/register`
-- **认证**：不需要
-- **请求体**：
-```json
-{
-  "username": "string",
-  "email": "string",
-  "password": "string"
-}
 ```
-- **响应**：
-```json
-{
-  "code": 201,
-  "message": "注册成功",
-  "data": {
-    "username": "string"
-  }
-}
-```
-
-#### 用户登录
-- **URL**：`POST /api/login`
-- **认证**：不需要
-- **请求体**：
-```json
-{
-  "username": "string",
-  "password": "string"
-}
-```
-- **响应**：
-```json
-{
-  "code": 200,
-  "message": "登录成功",
-  "data": {
-    "access_token": "string",
-    "refresh_token": "string",
-    "username": "string",
-    "user": {}
-  }
-}
+demo1/
+├── backend/              # 后端服务
+│   ├── app/
+│   │   ├── api/         # API 路由（auth, core, kb, chat）
+│   │   ├── models/      # 数据模型
+│   │   ├── config.py    # 配置文件
+│   │   └── utils/       # 工具函数
+│   ├── instance/        # 数据库和向量库
+│   ├── uploads/         # 上传文件存储
+│   └── run.py           # 启动入口
+│
+├── frontend/            # 前端应用
+│   ├── src/
+│   │   ├── components/  # 组件
+│   │   ├── composables/ # 组合式函数
+│   │   ├── pages/       # 页面
+│   │   └── utils/       # 工具函数
+│   └── package.json
+│
+└── requirements.txt     # Python 依赖
 ```
 
-#### 刷新 Token
-- **URL**：`POST /api/refresh`
-- **认证**：需要 Refresh Token
-- **响应**：
-```json
-{
-  "code": 200,
-  "message": "Token刷新成功",
-  "data": {
-    "access_token": "string",
-    "username": "string"
-  }
-}
-```
+## 主要 API
 
-#### 用户登出
-- **URL**：`POST /api/logout`
-- **认证**：需要 Access Token
-- **响应**：
-```json
-{
-  "code": 200,
-  "message": "登出成功"
-}
-```
+### 认证
+- `POST /api/register` - 用户注册
+- `POST /api/login` - 用户登录
+- `POST /api/refresh` - 刷新 Token
+- `POST /api/logout` - 用户登出
 
-#### 获取用户信息
-- **URL**：`GET /api/profile`
-- **认证**：需要 Access Token
-- **响应**：
-```json
-{
-  "code": 200,
-  "data": {
-    "id": 1,
-    "username": "string",
-    "email": "string"
-  }
-}
-```
+### 知识库
+- `GET /api/kb-info` - 获取知识库信息
+- `POST /api/upload` - 上传文件
+- `POST /api/delete` - 删除文件
 
-### 知识库接口
+### 聊天
+- `POST /api/chat` - 发送消息（SSE 流式响应）
 
-#### 获取知识库信息
-- **URL**：`GET /api/kb-info`
-- **认证**：需要 Access Token
-- **响应**：
-```json
-{
-  "code": 200,
-  "data": {
-    "file_count": 5,
-    "vector_count": 1000,
-    "files": [
-      {
-        "filename": "example.pdf",
-        "type": "pdf",
-        "upload_time": "2024-01-01T00:00:00"
-      }
-    ]
-  }
-}
-```
+## 配置说明
 
-#### 上传文件
-- **URL**：`POST /api/upload`
-- **认证**：需要 Access Token
-- **请求**：`multipart/form-data`，字段名：`file`
-- **支持格式**：txt, pdf, md, doc, docx, csv
-- **最大大小**：10MB
-- **响应**：
-```json
-{
-  "code": 200,
-  "message": "文件上传成功，正在索引"
-}
-```
+### 文件上传
+- 最大文件大小：10MB
+- 支持格式：txt, pdf, md, doc, docx, csv
+- 存储位置：`backend/uploads/`
 
-#### 删除文件
-- **URL**：`POST /api/delete`
-- **认证**：需要 Access Token
-- **请求体**：
-```json
-{
-  "filename": "example.pdf"
-}
-```
-- **响应**：
-```json
-{
-  "code": 200,
-  "message": "文件删除成功"
-}
-```
+### 数据库
+- SQLite 数据库：`backend/instance/demo.db`
+- ChromaDB 向量库：`backend/instance/chroma_db/`
 
-### 聊天接口
-
-#### 发送消息
-- **URL**：`POST /api/chat`
-- **认证**：需要 Access Token
-- **请求体**：
-```json
-{
-  "message": "你好",
-  "use_rag": true
-}
-```
-- **响应**：Server-Sent Events (SSE) 流式响应
-- **响应格式**：
-```
-data: {"content": "你好"}
-data: {"content": "！"}
-data: {"type": "searching_end", "sources": [...]}
-data: [DONE]
-```
-
-## 🔧 配置说明
-
-### 后端配置
-
-主要配置文件：`backend/app/config.py`
-
-#### 数据库配置
-- **类型**：SQLite（默认）
-- **位置**：`backend/instance/demo.db`
-- **自动创建**：应用启动时自动创建表结构
-
-#### JWT 配置
-- **Access Token 有效期**：默认 24 小时（可通过环境变量 `JWT_ACCESS_TOKEN_EXPIRES_HOURS` 配置）
-- **Refresh Token 有效期**：默认 30 天（可通过环境变量 `JWT_REFRESH_TOKEN_EXPIRES_DAYS` 配置）
-- **密钥**：通过环境变量 `JWT_SECRET_KEY` 设置（生产环境必须设置）
-
-#### 文件上传配置
-- **最大文件大小**：10MB
-- **支持格式**：txt, pdf, md, doc, docx, csv
-- **存储位置**：`backend/uploads/`
-
-#### CORS 配置
-- **默认允许**：`http://localhost:5173`, `http://localhost:3000`
-- **配置方式**：通过环境变量 `CORS_ORIGINS` 设置（多个域名用逗号分隔）
-
-### 前端配置
-
-主要配置文件：`frontend/vite.config.mts`
-
-#### 开发服务器
-- **默认端口**：5173
-- **热更新**：支持
-
-#### API 配置
-- **后端地址**：`http://localhost:5000`
-- **配置位置**：`frontend/src/utils/api.ts`
-
-## 📝 开发说明
-
-### 数据库初始化
-
-应用启动时会自动创建数据库表。如需重置数据库：
-
-1. 停止应用
-2. 删除 `backend/instance/demo.db` 文件
-3. 重新启动应用
-
-### 向量数据库
-
-ChromaDB 数据存储在 `backend/instance/chroma_db/` 目录。删除此目录可清空所有向量数据。
-
-### 日志
-
-- **开发环境**：日志输出到控制台
-- **生产环境**：日志文件存储在 `backend/logs/app.log`
-
-### 前端开发
-
-#### Composables 使用
-
-项目使用 Vue 3 Composition API 的 Composables 模式组织代码：
-
-- `useAuth`：处理用户认证相关逻辑
-- `useChat`：处理聊天相关逻辑
-- `useKnowledgeBase`：处理知识库管理逻辑
-- `useSnackbar`：处理消息提示逻辑
-
-#### Token 管理
-
-Token 管理封装在 `frontend/src/utils/api.ts` 中的 `tokenManager`：
-
-- 自动保存和读取 Token
-- 自动刷新过期的 Access Token
-- 统一处理认证错误
-
-### 代码规范
-
-- **后端**：遵循 PEP 8 Python 代码规范
-- **前端**：使用 ESLint 进行代码检查，运行 `pnpm lint` 进行代码格式化
-
-## 🧪 测试
-
-### 后端测试
-
-```bash
-cd backend
-pytest
-```
-
-### 前端测试
-
-```bash
-cd frontend
-pnpm test
-```
-
-### 代码检查
-
-**前端**：
-```bash
-cd frontend
-pnpm lint
-```
-
-## 📦 构建部署
+## 构建部署
 
 ### 前端构建
-
 ```bash
 cd frontend
 pnpm build
 ```
-
-构建产物在 `frontend/dist/` 目录。
 
 ### 生产环境部署
 
-#### 后端部署
+**后端**：使用 Gunicorn
+```bash
+pip install gunicorn
+cd backend
+gunicorn -w 4 -b 0.0.0.0:5000 run:app
+```
 
-1. **设置环境变量**
-   ```bash
-   export FLASK_ENV=production
-   export JWT_SECRET_KEY=your-strong-secret-key-here
-   ```
+**前端**：将 `frontend/dist/` 部署到静态服务器
 
-2. **使用 Gunicorn 运行**（推荐）
-   ```bash
-   pip install gunicorn
-   cd backend
-   gunicorn -w 4 -b 0.0.0.0:5000 run:app
-   ```
+> 生产环境必须设置 `JWT_SECRET_KEY` 环境变量，建议使用 HTTPS
 
-3. **使用 Nginx 反向代理**
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
+## 常见问题
 
-       location /api {
-           proxy_pass http://127.0.0.1:5000;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-       }
+- **端口被占用**：修改 `backend/run.py` 中的端口号
+- **CORS 错误**：检查 `CORS_ORIGINS` 配置是否包含前端地址
+- **Token 过期**：系统会自动刷新，失败需重新登录
+- **文件上传失败**：检查文件大小（≤10MB）和格式是否支持
 
-       location / {
-           root /path/to/frontend/dist;
-           try_files $uri $uri/ /index.html;
-       }
-   }
-   ```
+## 许可证
 
-#### 前端部署
-
-1. **构建生产版本**
-   ```bash
-   cd frontend
-   pnpm build
-   ```
-
-2. **部署到静态服务器**
-   - 将 `frontend/dist/` 目录内容上传到静态服务器
-   - 配置服务器支持 SPA 路由（所有路由指向 `index.html`）
-
-3. **配置 API 代理**
-   - 如果前后端不在同一域名，需要配置 CORS
-   - 或使用 Nginx 反向代理统一域名
-
-## ❓ 常见问题
-
-### 1. 后端启动失败
-
-**问题**：端口被占用
-**解决**：修改 `backend/run.py` 中的端口号，或关闭占用端口的程序
-
-### 2. 前端无法连接后端
-
-**问题**：CORS 错误或后端未启动
-**解决**：
-- 确保后端服务已启动
-- 检查 `CORS_ORIGINS` 配置是否包含前端地址
-- 检查浏览器控制台的错误信息
-
-### 3. Token 过期问题
-
-**问题**：登录后一段时间提示 Token 过期
-**解决**：系统会自动刷新 Token，如果刷新失败，请重新登录
-
-### 4. 文件上传失败
-
-**问题**：文件过大或格式不支持
-**解决**：
-- 检查文件大小是否超过 10MB
-- 检查文件格式是否在支持列表中
-- 检查 `backend/uploads/` 目录权限
-
-### 5. 知识库检索无结果
-
-**问题**：上传文件后检索不到相关内容
-**解决**：
-- 确保文件已成功上传并完成索引
-- 检查 ChromaDB 数据是否正常
-- 尝试重新上传文件
-
-## 🔒 安全建议
-
-1. **生产环境必须设置强密钥**
-   - `JWT_SECRET_KEY` 应使用随机生成的强密钥
-   - 建议使用至少 32 字符的随机字符串
-
-2. **HTTPS 部署**
-   - 生产环境必须使用 HTTPS
-   - 保护 Token 传输安全
-
-3. **数据库安全**
-   - 生产环境建议使用 PostgreSQL 或 MySQL
-   - 定期备份数据库
-
-4. **文件上传安全**
-   - 限制文件类型和大小
-   - 对上传文件进行病毒扫描（可选）
-   - 定期清理未使用的文件
-
-## 🤝 贡献指南
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-## 📄 许可证
-
-本项目采用 MIT 许可证。
-
-## 👥 作者
-
-毕业设计项目
-
-## 🙏 致谢
-
-- [Flask](https://flask.palletsprojects.com/) - Python Web 框架
-- [Vue.js](https://vuejs.org/) - 渐进式 JavaScript 框架
-- [Vuetify](https://vuetifyjs.com/) - Material Design 组件库
-- [ChromaDB](https://www.trychroma.com/) - 开源向量数据库
-- [Flask-JWT-Extended](https://flask-jwt-extended.readthedocs.io/) - JWT 认证扩展
-
----
-
-如有问题或建议，欢迎提交 Issue 或 Pull Request。
+MIT License
