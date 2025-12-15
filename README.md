@@ -84,25 +84,35 @@ JWT_REFRESH_TOKEN_EXPIRES_DAYS=30
 
 ```
 demo1/
-├── backend/              # 后端服务
-│   ├── app/
-│   │   ├── api/         # API 路由（auth, core, kb, chat）
-│   │   ├── models/      # 数据模型
-│   │   ├── config.py    # 配置文件
-│   │   └── utils/       # 工具函数
-│   ├── instance/        # 数据库和向量库
-│   ├── uploads/         # 上传文件存储
-│   └── run.py           # 启动入口
+├── backend/              # 后端服务目录
+│   ├── app/             # 应用核心代码
+│   │   ├── api/         # API路由模块
+│   │   │   ├── auth     # 用户认证相关接口
+│   │   │   ├── core     # 核心功能接口
+│   │   │   ├── kb       # 知识库管理接口
+│   │   │   └── chat     # 聊天相关接口
+│   │   ├── models/      # 数据模型定义
+│   │   ├── config.py    # 系统配置文件
+│   │   └── utils/       # 工具函数集合
+│   ├── instance/        # 数据存储目录
+│   │   ├── demo.db      # SQLite数据库文件
+│   │   └── chroma_db/   # Chroma向量数据库
+│   ├── uploads/         # 用户上传文件存储目录
+│   └── run.py           # 后端服务启动入口
 │
-├── frontend/            # 前端应用
-│   ├── src/
-│   │   ├── components/  # 组件
-│   │   ├── composables/ # 组合式函数
-│   │   ├── pages/       # 页面
-│   │   └── utils/       # 工具函数
-│   └── package.json
+├── frontend/            # 前端应用目录
+│   ├── src/             # 前端源代码
+│   │   ├── components/  # 可复用UI组件
+│   │   ├── composables/ # Vue组合式函数
+│   │   ├── pages/       # 页面组件
+│   │   ├── utils/       # 前端工具函数
+│   │   └── main.ts      # 前端应用入口
+│   ├── public/          # 静态资源目录
+│   ├── package.json     # 前端依赖配置
+│   └── vite.config.ts   # Vite构建配置
 │
-└── requirements.txt     # Python 依赖
+└── requirements.txt     # Python后端依赖列表
+
 ```
 
 ## 主要 API
