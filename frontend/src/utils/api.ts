@@ -3,7 +3,11 @@
  * 自动处理JWT Token、错误处理和Token刷新
  */
 
-const API_BASE_URL = 'http://localhost:5000/api'
+// API 基础URL配置
+// 开发环境：使用完整URL（http://localhost:5000/api）
+// 生产环境：使用相对路径（/api），通过nginx代理
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api')
 
 /**
  * API响应接口
